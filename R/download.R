@@ -2315,6 +2315,10 @@ download_modis <- function(
   #### 9. Reuse ladsweb home url
   ladsurl <- "https://ladsweb.modaps.eosdis.nasa.gov/"
   version <- ifelse(startsWith(product, "VNP"), "5000", version)
+  ladsurl_exp <- paste0(
+    ladsurl,
+    "archive/allData/"
+  )
 
   #### 10. MOD06_L2 manual input
   if (product == "MOD06_L2") {
@@ -2340,10 +2344,11 @@ download_modis <- function(
     #### 10-1. Parse urls in csv
     file_url <- read.csv(mod06_links)
     file_url <- unlist(file_url[, 2])
+
     download_url <-
       paste0(
-        substr(ladsurl, 1, nchar(ladsurl) - 1),
-        file_url
+        ladsurl,
+        gsub("^/", "", file_url)  # Remove leading slash from file_url
       )
 
     #### 10-2. Parse dates from csv
@@ -2361,7 +2366,8 @@ download_modis <- function(
       substr(file_dates, 1, 4), "/", substr(file_dates, 5, 7), "/"
     )
     # Extract download names from file_url using splitter
-    download_name <- sapply(strsplit(file_url, splitter), `[`, 2)
+    # download_name <- sapply(strsplit(file_url, splitter), `[`, 2)
+    download_name <- sub(ladsurl_exp, "", file_url)
 
     #### 10-3. initiate "..._wget_commands.txt" file
     commands_txt <- paste0(
@@ -2421,8 +2427,7 @@ download_modis <- function(
   year <- as.character(substr(date[1], 1, 4))
   filedir_year_url <-
     paste0(
-      ladsurl,
-      "archive/allData/",
+      ladsurl_exp,
       version,
       "/",
       product,
@@ -2487,11 +2492,12 @@ download_modis <- function(
         filelist,
         value = TRUE
       )
-    download_url <- sprintf("%s%s", ladsurl, filelist_sub)
+    download_url <- filelist_sub
 
-    download_name <- sapply(
-      strsplit(download_url, paste0("/", day, "/")), `[`, 2
-    )
+    # download_name <- sapply(
+    #   strsplit(download_url, paste0("/", day, "/")), `[`, 2
+    # )
+    download_name <- sub(ladsurl_exp, "", download_url)
 
     # Main wget run
     download_command <- paste0(
